@@ -11,13 +11,18 @@ export const useCalculator = () => {
     const [formula, setFormula] = useState('');
     const [number, setNumber] = useState('0');
     const [previousNumber, setPreviousNumber] = useState('0');
-    const lastOperator = useRef<Operator>();
+    const [result, setResult] = useState<number | null>(null); // Para mostrar el resultado mientras se construye la fórmula
+    const lastOperator = useRef<Operator | undefined>(undefined);
 
+    // Actualiza la fórmula al cambiar el número o el operador
     useEffect(() => {
         if (lastOperator.current) {
             setFormula(`${previousNumber} ${lastOperator.current} ${number}`);
+            const calculatedResult = calculateSubResult();
+            setResult(calculatedResult); // Actualizar el resultado en tiempo real
         } else {
             setFormula(number);
+            setResult(parseFloat(number)); // Mostrar el número actual como resultado
         }
     }, [number, previousNumber]);
 
@@ -26,6 +31,7 @@ export const useCalculator = () => {
         setPreviousNumber('0');
         lastOperator.current = undefined;
         setFormula('');
+        setResult(null);
     }
 
     const cleanLastNumber = () => {
@@ -51,6 +57,7 @@ export const useCalculator = () => {
     }
 
     const setLastNumber = () => {
+        calculateSubResult();
         setPreviousNumber(number.endsWith('.') ? number.slice(0, -1) : number);
         setNumber('0');
     }
@@ -70,11 +77,12 @@ export const useCalculator = () => {
     const calculate = () => {
         if (!lastOperator.current) return;
 
-        const result = calculateSubResult();
-        setFormula(`${previousNumber} ${lastOperator.current} ${number} = ${result}`);
-        setNumber(result.toString());
+        const finalResult = calculateSubResult();
+        setFormula(`${previousNumber} ${lastOperator.current} ${number} = ${finalResult}`);
+        setNumber(finalResult.toString());
         setPreviousNumber('0');
         lastOperator.current = undefined;
+        setResult(null); // Limpia el resultado en tiempo real una vez que se muestra el final
     }
 
     const calculateSubResult = (): number => {
@@ -93,7 +101,7 @@ export const useCalculator = () => {
             case Operator.division:
                 return num / prev;
             default:
-                throw new Error('Operación no soportada');
+                return num;
         }
     }
 
@@ -101,6 +109,7 @@ export const useCalculator = () => {
         number,
         previousNumber,
         formula,
+        result, // El resultado en tiempo real
         buildNumber,
         clean,
         cleanLastNumber,
